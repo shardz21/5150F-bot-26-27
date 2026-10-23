@@ -25,7 +25,7 @@
 #include <thread>
 #include <cmath>
 using namespace au;
-// ROBOTNICSWAG67
+// noob vs pros vs hacker
 // Controller
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
@@ -39,6 +39,8 @@ pros::Motor rightMiddle(19,pros::v5::MotorGears::blue);
 pros::Motor rightBack(17, pros::v5::MotorGears::blue);
 
 // pros::Motor loadingMini(-18); // half motor
+
+pros::adi::DigitalOut pistonClaw('a', LOW);
 
 pros::MotorGroup leftSide({-11,-12,-14});
 pros::MotorGroup rightSide({20,19,17});
@@ -642,6 +644,8 @@ double start = pros::millis();
 
 void opcontrol() {
 
+	bool clawToggle = false;
+
 	leftSide.set_gearing(pros::MotorGears::blue);
 	rightSide.set_gearing(pros::MotorGears::blue);
 	leftSide.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
@@ -659,6 +663,18 @@ void opcontrol() {
 		
 		leftSide.move(power + turn);
 		rightSide.move(power - turn);
+
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
+			if (clawToggle) {
+				pistonClaw.set_value(LOW);
+			} else {
+				pistonClaw.set_value(HIGH);
+			}
+			clawToggle = !clawToggle;
+
+			pros::delay(250);
+		}
+
 
 
 		// arcade movement
