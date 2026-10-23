@@ -32,16 +32,16 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 // Program motor placement for drive wheelss
 pros::Motor leftFront(-11,pros::v5::MotorGears::blue);
 pros::Motor leftMiddle(-12,pros::v5::MotorGears::blue);
-pros::Motor leftBack(-13, pros::v5::MotorGears::blue);
+pros::Motor leftBack(-14, pros::v5::MotorGears::blue);
 
-pros::Motor rightFront(-20,pros::v5::MotorGears::blue);
-pros::Motor rightMiddle(-19,pros::v5::MotorGears::blue);
-pros::Motor rightBack(-18, pros::v5::MotorGears::blue);
+pros::Motor rightFront(20,pros::v5::MotorGears::blue);
+pros::Motor rightMiddle(19,pros::v5::MotorGears::blue);
+pros::Motor rightBack(17, pros::v5::MotorGears::blue);
 
 // pros::Motor loadingMini(-18); // half motor
 
-pros::MotorGroup leftSide({11,12,13});
-pros::MotorGroup rightSide({20,19,18});
+pros::MotorGroup leftSide({-11,-12,-14});
+pros::MotorGroup rightSide({20,19,17});
 
 
 
@@ -276,8 +276,8 @@ public:
 
 // Create a config for everything used in the Robot class
 dlib::ChassisConfig chassis_config = dlib::ChassisConfig::from_drive_rpm(
-	{{11, 12, 13}},	// left motors
-	{{20, 19, 18}},	// right 
+	{{-11, -12, -14}},	// left motors
+	{{20, 19, 17}},	// right motors
 
 
 
@@ -654,12 +654,12 @@ void opcontrol() {
 
 		// get power and turn
 		double power = master.get_analog(ANALOG_LEFT_Y);
-		double turn = master.get_analog(ANALOG_RIGHT_X);
-		leftSide.move(((power) + turn));
-		rightSide.move(((power) - turn));
+		double turn = master.get_analog(ANALOG_RIGHT_X) * -1;
+		// ^weird way of inverting the turn value because flipping symbol below wont work for some reason
 		
-		// pros::lcd::print(0,"power: %f", power);
-		// pros::lcd::print(1,"turn: %f", turn);
+		leftSide.move(power + turn);
+		rightSide.move(power - turn);
+
 
 		// arcade movement
 		robot.chassis.arcade(power, turn);

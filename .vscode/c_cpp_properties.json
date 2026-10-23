@@ -4,7 +4,7 @@
       "name": "PROS Project",
       "includePath": [
         "${workspaceFolder}/**",
-        "/Users/shivenbrahmkshatriya/Documents/5150F 2026-2027/noob vs pros vs hacker v2/include"
+        "/Users/shivenbrahmkshatriya/Documents/5150F 2026-2027/noob vs pros vs hacker/include"
       ],
       "defines": [
         "_DEBUG",
@@ -20,7 +20,7 @@
       ],
       "browse": {
         "path": [
-          "/Users/shivenbrahmkshatriya/Documents/5150F 2026-2027/noob vs pros vs hacker v2"
+          "/Users/shivenbrahmkshatriya/Documents/5150F 2026-2027/noob vs pros vs hacker"
         ],
         "limitSymbolsToIncludedHeaders": true,
         "databaseFilename": ""

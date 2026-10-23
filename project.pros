@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "test pls work v4",
+    "project_name": "test pls work",
     "target": "v5",
     "templates": {
       "kernel": {
@@ -594,7 +594,7 @@
     "upload_options": {
       "description": "hi",
       "icon": "pizza",
-      "slot": 3
+      "slot": 1
     },
     "use_early_access": false
   }
