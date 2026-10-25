@@ -30,21 +30,25 @@ using namespace au;
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 // Program motor placement for drive wheelss
-pros::Motor leftFront(-11,pros::v5::MotorGears::blue);
-pros::Motor leftMiddle(-12,pros::v5::MotorGears::blue);
-pros::Motor leftBack(-14, pros::v5::MotorGears::blue);
+pros::Motor leftFrontDrive(-11,pros::v5::MotorGears::blue);
+pros::Motor leftMiddleDrive(-12,pros::v5::MotorGears::blue);
+pros::Motor leftBackDrive(-14, pros::v5::MotorGears::blue);
 
-pros::Motor rightFront(20,pros::v5::MotorGears::blue);
-pros::Motor rightMiddle(19,pros::v5::MotorGears::blue);
-pros::Motor rightBack(17, pros::v5::MotorGears::blue);
+pros::Motor rightFrontDrive(20,pros::v5::MotorGears::blue);
+pros::Motor rightMiddleDrive(19,pros::v5::MotorGears::blue);
+pros::Motor rightBackDrive(17, pros::v5::MotorGears::blue);
+
+pros::Motor cascadeLeft(3, pros::v5::MotorGears::green);
+pros::Motor cascadeRight(-9, pros::v5::MotorGears::green);
 
 // pros::Motor loadingMini(-18); // half motor
 
 pros::adi::DigitalOut pistonClaw('a', LOW);
 
-pros::MotorGroup leftSide({-11,-12,-14});
-pros::MotorGroup rightSide({20,19,17});
+pros::MotorGroup leftDrive({-11,-12,-14});
+pros::MotorGroup rightDrive({20,19,17});
 
+pros::MotorGroup cascade({3, -9});
 
 
 
@@ -408,8 +412,8 @@ void competition_initialize() {
 
 
 void manualMove(int volts){
-	leftSide.move(volts);
-	rightSide.move(volts);
+	leftDrive.move(volts);
+	rightDrive.move(volts);
 }
 
 // void manualBrakeStop(){
@@ -644,12 +648,12 @@ double start = pros::millis();
 
 void opcontrol() {
 
-	bool clawToggle = false;
+	bool clawToggle = true;
 
-	leftSide.set_gearing(pros::MotorGears::blue);
-	rightSide.set_gearing(pros::MotorGears::blue);
-	leftSide.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
-	rightSide.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+	leftDrive.set_gearing(pros::MotorGears::blue);
+	rightDrive.set_gearing(pros::MotorGears::blue);
+	leftDrive.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+	rightDrive.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
 
 
 	while(true){
@@ -661,21 +665,29 @@ void opcontrol() {
 		double turn = master.get_analog(ANALOG_RIGHT_X) * -1;
 		// ^weird way of inverting the turn value because flipping symbol below wont work for some reason
 		
-		leftSide.move(power + turn);
-		rightSide.move(power - turn);
+		leftDrive.move(power + turn);
+		rightDrive.move(power - turn);
 
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
+		// piston claw toggle
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
 			if (clawToggle) {
-				pistonClaw.set_value(LOW);
-			} else {
 				pistonClaw.set_value(HIGH);
+			} else {
+				pistonClaw.set_value(LOW);
 			}
+			
 			clawToggle = !clawToggle;
-
 			pros::delay(250);
 		}
 
-
+		// CASCADE
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){ // cascade up
+			cascade.move(127);
+		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){ // cascade down
+			cascade.move(-50);
+		} else {
+			brakeStop(cascade);
+		}
 
 		// arcade movement
 		robot.chassis.arcade(power, turn);
