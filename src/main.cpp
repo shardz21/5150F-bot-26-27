@@ -12,6 +12,7 @@
 #include "pros/adi.h"
 #include "pros/adi.hpp"
 #include "pros/distance.hpp"
+#include "pros/imu.hpp"
 #include "pros/misc.h"
 #include "pros/motor_group.hpp"
 #include "pros/motors.h"
@@ -25,11 +26,15 @@
 #include <thread>
 #include <cmath>
 using namespace au;
+
 // noob vs pros vs hacker
-// Controller
+//                  ^ us btw
+
+// controller
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 
-// Program motor placement for drive wheelss
+
+// DRIVETRAIN
 pros::Motor leftFrontDrive(-11,pros::v5::MotorGears::blue);
 pros::Motor leftMiddleDrive(-12,pros::v5::MotorGears::blue);
 pros::Motor leftBackDrive(-14, pros::v5::MotorGears::blue);
@@ -38,17 +43,27 @@ pros::Motor rightFrontDrive(20,pros::v5::MotorGears::blue);
 pros::Motor rightMiddleDrive(19,pros::v5::MotorGears::blue);
 pros::Motor rightBackDrive(17, pros::v5::MotorGears::blue);
 
-pros::Motor cascadeLeft(3, pros::v5::MotorGears::green);
-pros::Motor cascadeRight(-9, pros::v5::MotorGears::green);
-
-// pros::Motor loadingMini(-18); // half motor
-
-pros::adi::DigitalOut pistonClaw('a', LOW);
-
 pros::MotorGroup leftDrive({-11,-12,-14});
 pros::MotorGroup rightDrive({20,19,17});
 
+
+// CASCADE
+pros::Motor cascadeLeft(3, pros::v5::MotorGears::green);
+pros::Motor cascadeRight(-9, pros::v5::MotorGears::green);
+
+pros::Rotation cascadeRotation(6);
+
 pros::MotorGroup cascade({3, -9});
+
+
+// CLAW
+pros::adi::DigitalOut pistonClaw('a', LOW);
+
+// pros::Distance clawDistance(16);
+
+
+
+
 
 
 
@@ -380,6 +395,7 @@ void initialize() {
 	pros::lcd::register_btn1_cb(on_center_button);
 	pros::Task screenTask(screen); // create a task to print the position to the screen
     pros::lcd::initialize(); // initialize brain screen
+	cascadeRotation.reset_position(); // reset the cascade rotation sensor position to 0 
     pros::Task screen_task([&]() {
         while (true) {
             pros::delay(20);
@@ -387,6 +403,7 @@ void initialize() {
 			pros::lcd::print(0,"x: %f", pose.x.in(inches));
 			pros::lcd::print(1,"y: %f", pose.y.in(inches));
 			pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
+			pros::lcd::print(3, "cascadeRotation: %d", cascadeRotation.get_position());
         }
     });
 
@@ -442,7 +459,32 @@ void brakeCoast(pros::MotorGroup& motor){
 }
 
 
+// void autoScore(bool &clawToggle) {
+// 	while (clawDistance.get_distance() > 300 /* change value */) {
+// 		cascade.move(127);
+// 	}
+// 	pros::delay(100); // cascade goes a little higher for cup to pass top
+// 								    // will be changed to use rot sensor later
+// 	brakeStop(cascade);
 
+// 	manualMove(60);
+// 	pros::delay(100);
+// 	brakeStop(leftDrive);
+// 	brakeStop(rightDrive);
+
+// 	cascade.move(-50);// lower cascade
+// 	pros::delay(100);// wait a tiny bit
+
+// 	// open claw
+// 	pistonClaw.set_value(LOW);
+// 	clawToggle = !clawToggle;
+	
+// 	// drive back
+// 	manualMove(-60);
+// 	pros::delay(200);
+// 	brakeCoast(leftDrive);
+// 	brakeCoast(rightDrive);
+// }
 
 
 
@@ -652,8 +694,7 @@ void opcontrol() {
 
 	leftDrive.set_gearing(pros::MotorGears::blue);
 	rightDrive.set_gearing(pros::MotorGears::blue);
-	leftDrive.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
-	rightDrive.set_brake_mode_all(pros::E_MOTOR_BRAKE_COAST);
+	cascade.set_gearing(pros::MotorGears::green);
 
 
 	while(true){
@@ -668,26 +709,43 @@ void opcontrol() {
 		leftDrive.move(power + turn);
 		rightDrive.move(power - turn);
 
+
 		// piston claw toggle
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
 			if (clawToggle) {
-				pistonClaw.set_value(HIGH);
+				pistonClaw.set_value(HIGH); // close claw
 			} else {
-				pistonClaw.set_value(LOW);
+				pistonClaw.set_value(LOW); // open claw
 			}
 			
 			clawToggle = !clawToggle;
 			pros::delay(250);
 		}
 
+
 		// CASCADE
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){ // cascade up
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // cascade up
+			if (cascadeRotation.get_position() <= 111200) { // wont let cascade up if already at highest point
 			cascade.move(127);
-		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)){ // cascade down
-			cascade.move(-50);
+			} else {
+				brakeStop(cascade);
+			}
+		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) { // cascade down
+			if (cascadeRotation.get_position() >= 0) { // wont let cascade down if already at lowest point
+				cascade.move(-50); // not full power so it retains the speed it goes up with and doesnt destring
+			} else {
+				brakeStop(cascade);
+			}
 		} else {
 			brakeStop(cascade);
 		}
+
+
+		// auto score
+		// if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+		// 	autoScore(clawToggle);
+		// }
+
 
 		// arcade movement
 		robot.chassis.arcade(power, turn);
@@ -695,6 +753,7 @@ void opcontrol() {
 		pros::lcd::print(0,"x: %f", pose.x.in(inches));
 		pros::lcd::print(1,"y: %f", pose.y.in(inches));
 		pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
+		pros::lcd::print(3, "cascadeRotation: %d", cascadeRotation.get_position());
 		// printData(elapsed);
 		pros::delay(20);
 

@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Build products and generated metadata
+bin/
+.d/
+.cache/
+docs/build/
+compile_commands.json
+
+# Personal VS Code settings
+.vscode/launch.json
