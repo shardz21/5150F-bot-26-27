@@ -59,7 +59,7 @@ pros::MotorGroup cascade({3, -9});
 // CLAW
 pros::adi::DigitalOut pistonClaw('a', LOW);
 
-// pros::Distance clawDistance(16);
+// pros::Distance clawDistance(8);
 
 
 
@@ -393,17 +393,19 @@ void initialize() {
 	pros::lcd::initialize(); // initialize brain screen
 	// pros::lcd::set_text(1, "Hello PROS User!");
 	pros::lcd::register_btn1_cb(on_center_button);
-	pros::Task screenTask(screen); // create a task to print the position to the screen
+	pros::Task screenTask(screen); // crenate a task to print the position to the screen
     pros::lcd::initialize(); // initialize brain screen
 	cascadeRotation.reset_position(); // reset the cascade rotation sensor position to 0 
+	cascadeRotation.set_reversed(true);
     pros::Task screen_task([&]() {
         while (true) {
             pros::delay(20);
 			dlib::Pose2d pose = robot.odom.get_position();
-			pros::lcd::print(0,"x: %f", pose.x.in(inches));
-			pros::lcd::print(1,"y: %f", pose.y.in(inches));
-			pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
-			pros::lcd::print(3, "cascadeRotation: %d", cascadeRotation.get_position());
+			// pros::lcd::print(0,"x: %f", pose.x.in(inches));
+			// pros::lcd::print(1,"y: %f", pose.y.in(inches));
+			// pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
+			pros::lcd::print(0, "cascadeRotation: %d", cascadeRotation.get_position());
+			// pros::lcd::print(1, "clawDistance: %d", clawDistance.get());
         }
     });
 
@@ -417,7 +419,6 @@ void initialize() {
 	);
 
 	profile.calculate(seconds(0));
-	
 	
 }
 
@@ -433,10 +434,6 @@ void manualMove(int volts){
 	rightDrive.move(volts);
 }
 
-// void manualBrakeStop(){
-// 	brakeStop(leftSide);
-// 	brakeStop(rightSide);
-// }
 
 
 
@@ -459,31 +456,115 @@ void brakeCoast(pros::MotorGroup& motor){
 }
 
 
+// void mayday(int volt) {
+//     while (cascadeRotation.get_position() > 5000) {
+//         cascade.move(volt);
+//         pros::delay(20);
+//     }
+
+//     brakeStop(cascade);
+// }
+
 // void autoScore(bool &clawToggle) {
-// 	while (clawDistance.get_distance() > 300 /* change value */) {
+
+// 	// variables to change all speeds easily
+// 	int cascadeDown = -50;
+// 	int driveSpeed = 45;
+
+// 	pros::delay(200);
+// 	while (clawDistance.get() < 300 /* TEST AND CHANGE VALUE */) {
+// 		// check for macro cancel
+// 		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+// 			brakeStop(cascade);
+// 			brakeCoast(leftDrive);
+// 			brakeCoast(rightDrive);
+// 			return;
+// 		}
+		
 // 		cascade.move(127);
+		
+// 		// brings cascade down if it trys to go too high and cancels macro
+// 		if (cascadeRotation.get_position() > 111200) {
+// 			mayday(cascadeDown);
+// 			return;
+// 		}
+
+// 		pros::delay(20);
 // 	}
-// 	pros::delay(100); // cascade goes a little higher for cup to pass top
-// 								    // will be changed to use rot sensor later
+
+// 	// brings cascade up 5000 degrees from when the distance sensor breaks
+// 	int currentHeight = cascadeRotation.get_position();
+// 	while (currentHeight + 7500 > cascadeRotation.get_position()) {
+// 		// check for macro cancel
+// 		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+// 			brakeStop(cascade);
+// 			brakeCoast(leftDrive);
+// 			brakeCoast(rightDrive);
+// 			return;
+// 		}
+
+// 		cascade.move(127);
+
+// 		// brings cascade down if it trys to go too high and cancels macro
+// 		if (cascadeRotation.get_position() > 111200) {
+// 			mayday(cascadeDown);
+// 			return;
+// 		}
+
+// 		pros::delay(20);
+// 	}
 // 	brakeStop(cascade);
 
-// 	manualMove(60);
-// 	pros::delay(100);
+// 	// drives bot into goal (aligns with plastic aligner)
+// 	manualMove(driveSpeed);
+// 	pros::delay(275);
 // 	brakeStop(leftDrive);
 // 	brakeStop(rightDrive);
 
-// 	cascade.move(-50);// lower cascade
-// 	pros::delay(100);// wait a tiny bit
+// 	pros::delay(50);
+
+// 	currentHeight = cascadeRotation.get_position();
+// 	while (currentHeight - 8000 < cascadeRotation.get_position()) {
+// 		// check for macro cancel
+// 		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+// 			brakeStop(cascade);
+// 			brakeCoast(leftDrive);
+// 			brakeCoast(rightDrive);
+// 			return;
+// 		}
+// 		cascade.move(cascadeDown);
+
+// 		pros::delay(20);
+// 	}
+// 	brakeStop(cascade);
 
 // 	// open claw
-// 	pistonClaw.set_value(LOW);
+// 	pistonClaw.set_value(HIGH);
 // 	clawToggle = !clawToggle;
 	
 // 	// drive back
-// 	manualMove(-60);
-// 	pros::delay(200);
+// 	manualMove(-1*driveSpeed);
+// 	pros::delay(250);
 // 	brakeCoast(leftDrive);
 // 	brakeCoast(rightDrive);
+	
+// 	// while (cascadeRotation.get_position() > 5000) {
+// 	// 	// check for macro cancel
+// 	// 	if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+// 	// 		brakeStop(cascade);
+// 	// 		brakeCoast(leftDrive);
+// 	// 		brakeCoast(rightDrive);
+// 	// 		return;
+// 	// 	}
+// 	// 	cascade.move(cascadeDown);
+
+// 	// 	pros::delay(20);
+// 	// }
+// 	// brakeStop(cascade);
+// 	// brakeCoast(leftDrive);
+// 	// brakeCoast(rightDrive);
+
+// 	return;
 // }
 
 
@@ -703,15 +784,14 @@ void opcontrol() {
 
 		// get power and turn
 		double power = master.get_analog(ANALOG_LEFT_Y);
-		double turn = master.get_analog(ANALOG_RIGHT_X) * -1;
-		// ^weird way of inverting the turn value because flipping symbol below wont work for some reason
+		double turn = master.get_analog(ANALOG_RIGHT_X);
 		
 		leftDrive.move(power + turn);
 		rightDrive.move(power - turn);
 
 
 		// piston claw toggle
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
 			if (clawToggle) {
 				pistonClaw.set_value(HIGH); // close claw
 			} else {
@@ -725,14 +805,14 @@ void opcontrol() {
 
 		// CASCADE
 		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // cascade up
-			if (cascadeRotation.get_position() <= 111200) { // wont let cascade up if already at highest point
+			if (cascadeRotation.get_position() <= 211200) { // wont let cascade up if already at highest point
 			cascade.move(127);
 			} else {
 				brakeStop(cascade);
 			}
-		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) { // cascade down
+		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // cascade down
 			if (cascadeRotation.get_position() >= 0) { // wont let cascade down if already at lowest point
-				cascade.move(-50); // not full power so it retains the speed it goes up with and doesnt destring
+				cascade.move(-65); // not full power so it retains the speed it goes up with and doesnt destring
 			} else {
 				brakeStop(cascade);
 			}
@@ -742,18 +822,18 @@ void opcontrol() {
 
 
 		// auto score
-		// if (master.get_digital(pros::E_CONTROLLER_DIGITAL_X)) {
+		// if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
 		// 	autoScore(clawToggle);
 		// }
 
-
 		// arcade movement
-		robot.chassis.arcade(power, turn);
-		dlib::Pose2d pose = robot.odom.get_position();
-		pros::lcd::print(0,"x: %f", pose.x.in(inches));
-		pros::lcd::print(1,"y: %f", pose.y.in(inches));
-		pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
-		pros::lcd::print(3, "cascadeRotation: %d", cascadeRotation.get_position());
+		// robot.chassis.arcade(power, turn);
+		// dlib::Pose2d pose = robot.odom.get_position();
+		// pros::lcd::print(0,"x: %f", pose.x.in(inches));
+		// pros::lcd::print(1,"y: %f", pose.y.in(inches));
+		// pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
+		pros::lcd::print(0, "cascadeRotation: %d", cascadeRotation.get_position());
+		// pros::lcd::print(1, "clawDistance: %d", clawDistance.get());
 		// printData(elapsed);
 		pros::delay(20);
 

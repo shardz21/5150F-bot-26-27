@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "meow",
+    "project_name": "rawr",
     "target": "v5",
     "templates": {
       "kernel": {
@@ -592,9 +592,9 @@
       }
     },
     "upload_options": {
-      "description": "meow",
+      "description": "rawr",
       "icon": "pizza",
-      "slot": 2
+      "slot": 1
     },
     "use_early_access": false
   }
