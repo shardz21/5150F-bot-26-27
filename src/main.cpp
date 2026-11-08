@@ -577,7 +577,30 @@ void move_to_point_adjusted(double x, double y, double starting_x, double starti
 
 
 
-
+void onePinAuto() {
+	while (cascadeRotation.get_position() <= 20000) {
+		cascade.move(127);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(500);
+	manualMove(50);
+	pros::delay(1500);
+	brakeCoast(leftDrive);
+	brakeCoast(rightDrive);
+	while (cascadeRotation.get_position() >= 5000) {
+		cascade.move(-50);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(250);
+	pistonClaw.set_value(HIGH);
+	pros::delay(250);
+	manualMove(-50);
+	pros::delay(750);
+	brakeCoast(leftDrive);
+	brakeCoast(rightDrive);
+}
 
 
 // void leftSideAuto(){
@@ -756,7 +779,7 @@ void record_map_voltages(){
 void autonomous() {
 	robot.start_odom();
 
-	// leftSideAuto();
+	onePinAuto();
 
 	dlib::Pose2d pose = robot.odom.get_position();
 	pros::lcd::print(0,"x: %f", pose.x.in(inches));
@@ -772,6 +795,7 @@ double start = pros::millis();
 void opcontrol() {
 
 	bool clawToggle = true;
+	bool safeCascade = true;
 
 	leftDrive.set_gearing(pros::MotorGears::blue);
 	rightDrive.set_gearing(pros::MotorGears::blue);
@@ -791,7 +815,7 @@ void opcontrol() {
 
 
 		// piston claw toggle
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) {
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) {
 			if (clawToggle) {
 				pistonClaw.set_value(HIGH); // close claw
 			} else {
@@ -804,22 +828,32 @@ void opcontrol() {
 
 
 		// CASCADE
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // cascade up
-			if (cascadeRotation.get_position() <= 211200) { // wont let cascade up if already at highest point
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) { // cascade up
+			if (cascadeRotation.get_position() <= 114000 && safeCascade) { // wont let cascade up if already at highest point
 			cascade.move(127);
+			} else if (!safeCascade) {
+				cascade.move(127);
 			} else {
 				brakeStop(cascade);
 			}
 		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // cascade down
-			if (cascadeRotation.get_position() >= 0) { // wont let cascade down if already at lowest point
-				cascade.move(-65); // not full power so it retains the speed it goes up with and doesnt destring
+			if (cascadeRotation.get_position() >= 2000 && safeCascade) { // wont let cascade down if already at lowest point
+				cascade.move(-80); // not full power so it retains the speed it goes up with and doesnt destring
+			} else if (!safeCascade) {
+				cascade.move(-80);
+
 			} else {
 				brakeStop(cascade);
 			}
 		} else {
 			brakeStop(cascade);
 		}
+		
 
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
+			safeCascade = !safeCascade;
+			pros::delay(250);
+		}
 
 		// auto score
 		// if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X)) {
