@@ -303,27 +303,27 @@ dlib::ChassisConfig chassis_config = dlib::ChassisConfig::from_drive_rpm(
 
 
 	pros::MotorGearset::blue,
-	rpm(400),	// the drivebase rpm
+	rpm(450),	// the drivebase rpm
 	inches(2.75)	// the drivebase wheel diameter
 );
 
-dlib::RotationConfig rotation_config = dlib::RotationConfig(
-	9, //rot sensor
-	inches(0.3183098862),
-	1
-);
+// dlib::RotationConfig rotation_config = dlib::RotationConfig(
+// 	9, //rot sensor
+// 	inches(0.3183098862),
+// 	1
+// );
 
 
 dlib::ImuConfig imu_config {
-	17,	// imu port // 11
+	8,	// imu port
 	1.00	// optional imu scaling constant
 };
 
 dlib::PidConfig move_pid_config {
 	{
-		135, // kp, proportional gain
+		75, // kp, proportional gain
 		0, 	// ki, integral gain
-		10	// kd, derivative gain
+		3	// kd, derivative gain
 	}
 };
 
@@ -343,9 +343,9 @@ dlib::FeedforwardGains move_feedforward_gains {
 
 dlib::PidConfig linear_feedforward_pid_config {
 	{
-		50, // kp, porportional gain
+		75, // kp, porportional gain
 		0, 	// ki, integral gain
-		0	// kd, derivative gain
+		3	// kd, derivative gain
 	}
 };
 
@@ -356,9 +356,9 @@ dlib::ErrorDerivativeSettler<Meters> move_pid_settler {
 
 dlib::PidConfig turn_pid_gains {
 	{
-		45, 	// kp, porportional gain
+		30, 	// kp, porportional gain
 		0, 	// ki, integral gain
-		3.5 	// kd, derivative gain
+		1.5 	// kd, derivative gain
 	}
 };
 
@@ -401,24 +401,24 @@ void initialize() {
         while (true) {
             pros::delay(20);
 			dlib::Pose2d pose = robot.odom.get_position();
-			// pros::lcd::print(0,"x: %f", pose.x.in(inches));
-			// pros::lcd::print(1,"y: %f", pose.y.in(inches));
-			// pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
-			pros::lcd::print(0, "cascadeRotation: %d", cascadeRotation.get_position());
+			pros::lcd::print(0,"x: %f", pose.x.in(inches));
+			pros::lcd::print(1,"y: %f", pose.y.in(inches));
+			pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
+			// pros::lcd::print(0, "cascadeRotation: %d", cascadeRotation.get_position());
 			// pros::lcd::print(1, "clawDistance: %d", clawDistance.get());
         }
     });
 
 
 
-	auto profile = 
-	dlib::TrapezoidProfile<Meters>::from_constraints(
-		centi(meters)(60),
-		meters_per_second(1.5),
-		meters_per_second_squared(3)
-	);
+	// auto profile = 
+	// dlib::TrapezoidProfile<Meters>::from_constraints(
+	// 	centi(meters)(60),
+	// 	meters_per_second(1.5),
+	// 	meters_per_second_squared(3)
+	// );
 
-	profile.calculate(seconds(0));
+	// profile.calculate(seconds(0));
 	
 }
 
@@ -574,8 +574,83 @@ void move_to_point_adjusted(double x, double y, double starting_x, double starti
 }
 
 
+void pidTester() {
+	robot.move_to_point(20,0);
+	pros::delay(500);
+	robot.turn_with_pid(90);
+	pros::delay(500);
+	robot.move_with_pid(24);
+	dlib::Pose2d pose = robot.odom.get_position();
+	pros::lcd::print(0,"x: %f", pose.x.in(inches));
+	pros::lcd::print(1,"y: %f", pose.y.in(inches));
+	pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
+}
+
+// two pin auto on alliance goal
+void leftSideAuto() {
+	// score preload into alliance goal
+	while (cascadeRotation.get_position() <= 20000) { // distance needed for first pin
+		cascade.move(127);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(100);
+	robot.move_to_point(12, 0);
+	pros::delay(50);
+	robot.move_to_point(12, 15.5);
+	pros::delay(100);
+	while (cascadeRotation.get_position() >= 5000) {
+		cascade.move(-50);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(100);
+	pistonClaw.set_value(HIGH); // open claw
+	pros::delay(100);
+	robot.move_to_point(12, 0, true);
 
 
+	// get matchload
+	pros::delay(50);
+	while (cascadeRotation.get_position() >= 0) {
+		cascade.move(-50);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(100);
+	robot.move_to_point(-2, 0);
+	pros::delay(100);
+	pistonClaw.set_value(LOW); // close claw
+	pros::delay(100);
+	while (cascadeRotation.get_position() <= 10000) { // to stop matchload from dragging on tile
+		cascade.move(127);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(100);
+	robot.move_to_point(12, 0, true);
+	pros::delay(100);
+
+
+	// score matchload into alliance goal
+	while (cascadeRotation.get_position() <= 36600) { // distance needed for second pin
+		cascade.move(127);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(100);
+	robot.move_to_point(12, 15.5);
+	pros::delay(100);
+	while (cascadeRotation.get_position() >= 25000) {
+		cascade.move(-50);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(100);
+	pistonClaw.set_value(HIGH); // open claw
+	pros::delay(100);
+	robot.move_to_point(12, 0, true);
+}
 
 void onePinAuto() {
 	while (cascadeRotation.get_position() <= 20000) {
@@ -779,7 +854,9 @@ void record_map_voltages(){
 void autonomous() {
 	robot.start_odom();
 
-	onePinAuto();
+	// onePinAuto();
+	// pidTester();
+	leftSideAuto();
 
 	dlib::Pose2d pose = robot.odom.get_position();
 	pros::lcd::print(0,"x: %f", pose.x.in(inches));
@@ -810,8 +887,8 @@ void opcontrol() {
 		double power = master.get_analog(ANALOG_LEFT_Y);
 		double turn = master.get_analog(ANALOG_RIGHT_X);
 		
-		leftDrive.move(power + turn);
-		rightDrive.move(power - turn);
+		// leftDrive.move(power + turn);
+		// rightDrive.move(power - turn);
 
 
 		// piston claw toggle
@@ -828,7 +905,7 @@ void opcontrol() {
 
 
 		// CASCADE
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) { // cascade up
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // cascade up
 			if (cascadeRotation.get_position() <= 114000 && safeCascade) { // wont let cascade up if already at highest point
 			cascade.move(127);
 			} else if (!safeCascade) {
@@ -836,7 +913,7 @@ void opcontrol() {
 			} else {
 				brakeStop(cascade);
 			}
-		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // cascade down
+		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) { // cascade down
 			if (cascadeRotation.get_position() >= 2000 && safeCascade) { // wont let cascade down if already at lowest point
 				cascade.move(-80); // not full power so it retains the speed it goes up with and doesnt destring
 			} else if (!safeCascade) {
@@ -861,12 +938,12 @@ void opcontrol() {
 		// }
 
 		// arcade movement
-		// robot.chassis.arcade(power, turn);
-		// dlib::Pose2d pose = robot.odom.get_position();
-		// pros::lcd::print(0,"x: %f", pose.x.in(inches));
-		// pros::lcd::print(1,"y: %f", pose.y.in(inches));
-		// pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
-		pros::lcd::print(0, "cascadeRotation: %d", cascadeRotation.get_position());
+		robot.chassis.arcade(power, turn);
+		dlib::Pose2d pose = robot.odom.get_position();
+		pros::lcd::print(0,"x: %f", pose.x.in(inches));
+		pros::lcd::print(1,"y: %f", pose.y.in(inches));
+		pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
+		// pros::lcd::print(0, "cascadeRotation: %d", cascadeRotation.get_position());
 		// pros::lcd::print(1, "clawDistance: %d", clawDistance.get());
 		// printData(elapsed);
 		pros::delay(20);
