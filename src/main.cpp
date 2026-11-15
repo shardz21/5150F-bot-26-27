@@ -36,15 +36,13 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 // DRIVETRAIN
 pros::Motor leftFrontDrive(11,pros::v5::MotorGears::blue);
-pros::Motor leftMiddleDrive(12,pros::v5::MotorGears::blue);
 pros::Motor leftBackDrive(14, pros::v5::MotorGears::blue);
 
 pros::Motor rightFrontDrive(-20,pros::v5::MotorGears::blue);
-pros::Motor rightMiddleDrive(-19,pros::v5::MotorGears::blue);
 pros::Motor rightBackDrive(-17, pros::v5::MotorGears::blue);
 
-pros::MotorGroup leftDrive({11,12,14});
-pros::MotorGroup rightDrive({-20,-19,-17});
+pros::MotorGroup leftDrive({11,14});
+pros::MotorGroup rightDrive({-20,-17});
 
 
 // CASCADE
