@@ -35,16 +35,16 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 
 // DRIVETRAIN
-pros::Motor leftFrontDrive(-11,pros::v5::MotorGears::blue);
-pros::Motor leftMiddleDrive(-12,pros::v5::MotorGears::blue);
-pros::Motor leftBackDrive(-14, pros::v5::MotorGears::blue);
+pros::Motor leftFrontDrive(11,pros::v5::MotorGears::blue);
+pros::Motor leftMiddleDrive(12,pros::v5::MotorGears::blue);
+pros::Motor leftBackDrive(14, pros::v5::MotorGears::blue);
 
-pros::Motor rightFrontDrive(20,pros::v5::MotorGears::blue);
-pros::Motor rightMiddleDrive(19,pros::v5::MotorGears::blue);
-pros::Motor rightBackDrive(17, pros::v5::MotorGears::blue);
+pros::Motor rightFrontDrive(-20,pros::v5::MotorGears::blue);
+pros::Motor rightMiddleDrive(-19,pros::v5::MotorGears::blue);
+pros::Motor rightBackDrive(-17, pros::v5::MotorGears::blue);
 
-pros::MotorGroup leftDrive({-11,-12,-14});
-pros::MotorGroup rightDrive({20,19,17});
+pros::MotorGroup leftDrive({11,12,14});
+pros::MotorGroup rightDrive({-20,-19,-17});
 
 
 // CASCADE
@@ -597,7 +597,7 @@ void leftSideAuto() {
 	pros::delay(100);
 	robot.move_to_point(12, 0);
 	pros::delay(50);
-	robot.move_to_point(12, 15.5);
+	robot.move_to_point(12, 20.5);
 	pros::delay(100);
 	while (cascadeRotation.get_position() >= 5000) {
 		cascade.move(-50);
@@ -639,7 +639,7 @@ void leftSideAuto() {
 	}
 	brakeStop(cascade);
 	pros::delay(100);
-	robot.move_to_point(12, 15.5);
+	robot.move_to_point(12, 20.5);
 	pros::delay(100);
 	while (cascadeRotation.get_position() >= 25000) {
 		cascade.move(-50);
