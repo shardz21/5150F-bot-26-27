@@ -35,21 +35,21 @@ pros::Controller master(pros::E_CONTROLLER_MASTER);
 
 
 // DRIVETRAIN
-pros::Motor leftFrontDrive(11,pros::v5::MotorGears::blue);
-pros::Motor leftBackDrive(14, pros::v5::MotorGears::blue);
+pros::Motor leftFrontDrive(-11,pros::v5::MotorGears::blue);
+pros::Motor leftBackDrive(-14, pros::v5::MotorGears::blue);
 
-pros::Motor rightFrontDrive(-20,pros::v5::MotorGears::blue);
-pros::Motor rightBackDrive(-17, pros::v5::MotorGears::blue);
+pros::Motor rightFrontDrive(20,pros::v5::MotorGears::blue);
+pros::Motor rightBackDrive(17, pros::v5::MotorGears::blue);
 
-pros::MotorGroup leftDrive({11,14});
-pros::MotorGroup rightDrive({-20,-17});
+pros::MotorGroup leftDrive({-11,-14});
+pros::MotorGroup rightDrive({20,17});
 
 
 // CASCADE
 pros::Motor cascadeLeft(3, pros::v5::MotorGears::green);
 pros::Motor cascadeRight(-9, pros::v5::MotorGears::green);
 
-pros::Rotation cascadeRotation(6);
+pros::Rotation cascadeRotation(7);
 
 pros::MotorGroup cascade({3, -9});
 
@@ -295,8 +295,8 @@ public:
 
 // Create a config for everything used in the Robot class
 dlib::ChassisConfig chassis_config = dlib::ChassisConfig::from_drive_rpm(
-	{{-11, -12, -14}},	// left motors
-	{{20, 19, 17}},	// right motors
+	{{-11, -14}},	// left motors
+	{{20, 17}},	// right motors
 
 
 
@@ -317,11 +317,13 @@ dlib::ImuConfig imu_config {
 	1.00	// optional imu scaling constant
 };
 
-dlib::PidConfig move_pid_config {
+dlib::Imu imu(imu_config);
+
+dlib::PidConfig move_pid_config { // used for robot.move_with_pid()
 	{
-		75, // kp, proportional gain
+		175, // kp, proportional gain
 		0, 	// ki, integral gain
-		3	// kd, derivative gain
+		2.75	// kd, derivative gain
 	}
 };
 
@@ -334,29 +336,32 @@ dlib::PidConfig move_pid_config {
 // };
 
 dlib::FeedforwardGains move_feedforward_gains {
-	1.094123824483574, // ks, static friction
-	8.05189133025693, // kv, scalable velocity
-	1.1206435619911086 // ka, acceleration
+	0, // ks, static friction
+	0, // kv, scalable velocity
+	0 // ka, acceleration
+	// 1.094123824483574,
+	// 8.05189133025693,
+	// 1.1206435619911086
 };
 
-dlib::PidConfig linear_feedforward_pid_config {
+dlib::PidConfig linear_feedforward_pid_config { // used for robot.move_to_point() or anything else using trapazoidal movement (robot.move_with_ffwd())
 	{
-		75, // kp, porportional gain
+		175, // kp, porportional gain
 		0, 	// ki, integral gain
-		3	// kd, derivative gain
+		2.75	// kd, derivative gain
 	}
 };
 
 dlib::ErrorDerivativeSettler<Meters> move_pid_settler {
-	inches(0.8),		// error threshold, the maximum error the pid can settle at
+	inches(0.4),		// error threshold, the maximum error the pid can settle at
 	meters_per_second(0.1) // derivative threshold, the maximum instantaneous error over time the pid can settle at
 };
 
-dlib::PidConfig turn_pid_gains {
+dlib::PidConfig turn_pid_gains { // used for turning (robot.turn_with_pis() & robot.turn_to_point())
 	{
 		30, 	// kp, porportional gain
 		0, 	// ki, integral gain
-		1.5 	// kd, derivative gain
+		2.75	// kd, derivative gain
 	}
 };
 
@@ -395,28 +400,28 @@ void initialize() {
     pros::lcd::initialize(); // initialize brain screen
 	cascadeRotation.reset_position(); // reset the cascade rotation sensor position to 0 
 	cascadeRotation.set_reversed(true);
-    pros::Task screen_task([&]() {
-        while (true) {
-            pros::delay(20);
-			dlib::Pose2d pose = robot.odom.get_position();
-			pros::lcd::print(0,"x: %f", pose.x.in(inches));
-			pros::lcd::print(1,"y: %f", pose.y.in(inches));
-			pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
-			// pros::lcd::print(0, "cascadeRotation: %d", cascadeRotation.get_position());
-			// pros::lcd::print(1, "clawDistance: %d", clawDistance.get());
-        }
-    });
+    // pros::Task screen_task([&]() {
+    //     while (true) {
+    //         pros::delay(20);
+	// 		dlib::Pose2d pose = robot.odom.get_position();
+	// 		pros::lcd::print(0,"x: %f", pose.x.in(inches));
+	// 		pros::lcd::print(1,"y: %f", pose.y.in(inches));
+	// 		pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
+	// 		// pros::lcd::print(0, "cascadeRotation: %d", cascadeRotation.get_position());
+	// 		// pros::lcd::print(1, "clawDistance: %d", clawDistance.get());
+    //     }
+    // });
 
 
 
-	// auto profile = 
-	// dlib::TrapezoidProfile<Meters>::from_constraints(
-	// 	centi(meters)(60),
-	// 	meters_per_second(1.5),
-	// 	meters_per_second_squared(3)
-	// );
+	auto profile = 
+	dlib::TrapezoidProfile<Meters>::from_constraints(
+		centi(meters)(60),
+		meters_per_second(1.5),
+		meters_per_second_squared(3)
+	);
 
-	// profile.calculate(seconds(0));
+	profile.calculate(seconds(0));
 	
 }
 
@@ -573,18 +578,16 @@ void move_to_point_adjusted(double x, double y, double starting_x, double starti
 
 
 void pidTester() {
-	robot.move_to_point(20,0);
-	pros::delay(500);
-	robot.turn_with_pid(90);
-	pros::delay(500);
-	robot.move_with_pid(24);
+	robot.move_to_point(12,10);
+	// robot.move_with_pid(12);
+	// robot.turn_with_pid(90);
 	dlib::Pose2d pose = robot.odom.get_position();
 	pros::lcd::print(0,"x: %f", pose.x.in(inches));
 	pros::lcd::print(1,"y: %f", pose.y.in(inches));
 	pros::lcd::print(2,"theta: %f", pose.theta.in(degrees));
 }
 
-// two pin auto on alliance goal
+// two pin auto on left alliance goal
 void leftSideAuto() {
 	// score preload into alliance goal
 	while (cascadeRotation.get_position() <= 20000) { // distance needed for first pin
@@ -592,20 +595,21 @@ void leftSideAuto() {
 		pros::delay(10);
 	}
 	brakeStop(cascade);
-	pros::delay(100);
-	robot.move_to_point(12, 0);
 	pros::delay(50);
-	robot.move_to_point(12, 20.5);
-	pros::delay(100);
+	robot.move_to_point(14, 0);
+	pros::delay(50);
+	robot.move_to_point(14, 29);
+	pros::delay(50);
 	while (cascadeRotation.get_position() >= 5000) {
 		cascade.move(-50);
 		pros::delay(10);
 	}
 	brakeStop(cascade);
-	pros::delay(100);
+	pros::delay(50);
 	pistonClaw.set_value(HIGH); // open claw
-	pros::delay(100);
-	robot.move_to_point(12, 0, true);
+	pros::delay(50);
+	robot.odom.set_position({inches(0),inches(0),robot.imu.get_rotation()}); //reset cords
+	robot.move_with_ffwd(-29); // (x: 0, y: -29)
 
 
 	// get matchload
@@ -615,19 +619,22 @@ void leftSideAuto() {
 		pros::delay(10);
 	}
 	brakeStop(cascade);
-	pros::delay(100);
-	robot.move_to_point(-2, 0);
-	pros::delay(100);
+	pros::delay(50);
+	robot.move_to_point(-14, -29.5); 
+	pros::delay(50);
 	pistonClaw.set_value(LOW); // close claw
-	pros::delay(100);
-	while (cascadeRotation.get_position() <= 10000) { // to stop matchload from dragging on tile
+
+	robot.odom.set_position({inches(0),inches(0),robot.imu.get_rotation()}); //reset cords
+
+	pros::delay(50);
+	while (cascadeRotation.get_position() <= 7500) { // to stop matchload from dragging on tile
 		cascade.move(127);
 		pros::delay(10);
 	}
 	brakeStop(cascade);
-	pros::delay(100);
-	robot.move_to_point(12, 0, true);
-	pros::delay(100);
+	pros::delay(50);
+	robot.move_with_ffwd(-14); // (x: 14, y: 0)
+	pros::delay(50);
 
 
 	// score matchload into alliance goal
@@ -636,18 +643,94 @@ void leftSideAuto() {
 		pros::delay(10);
 	}
 	brakeStop(cascade);
-	pros::delay(100);
-	robot.move_to_point(12, 20.5);
-	pros::delay(100);
+	pros::delay(50);
+	robot.move_to_point(14, 29.5);
+	pros::delay(50);
+
+	robot.odom.set_position({inches(0),inches(0),robot.imu.get_rotation()}); //reset cords
+
 	while (cascadeRotation.get_position() >= 25000) {
 		cascade.move(-50);
 		pros::delay(10);
 	}
 	brakeStop(cascade);
-	pros::delay(100);
+	pros::delay(50);
 	pistonClaw.set_value(HIGH); // open claw
-	pros::delay(100);
-	robot.move_to_point(12, 0, true);
+	pros::delay(50);
+	robot.move_with_ffwd(-29); // (x: 0, y: -29)
+}
+
+// two pin auto on right alliance goal
+void rightSideAuto() {
+	// score preload into alliance goal
+	while (cascadeRotation.get_position() <= 20000) { // distance needed for first pin
+		cascade.move(127);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(50);
+	robot.move_to_point(14, 0);
+	pros::delay(50);
+	robot.move_to_point(14, -29);
+	pros::delay(50);
+	while (cascadeRotation.get_position() >= 5000) {
+		cascade.move(-50);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(50);
+	pistonClaw.set_value(HIGH); // open claw
+	pros::delay(50);
+	robot.odom.set_position({inches(0),inches(0),robot.imu.get_rotation()}); //reset cords
+	robot.move_with_ffwd(-29); // (x: 0, y: 29)
+
+
+	// get matchload
+	pros::delay(50);
+	while (cascadeRotation.get_position() >= 0) {
+		cascade.move(-50);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(50);
+	robot.move_to_point(-14, 29.5); 
+	pros::delay(50);
+	pistonClaw.set_value(LOW); // close claw
+
+	robot.odom.set_position({inches(0),inches(0),robot.imu.get_rotation()}); //reset cords
+
+	pros::delay(50);
+	while (cascadeRotation.get_position() <= 7500) { // to stop matchload from dragging on tile
+		cascade.move(127);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(50);
+	robot.move_with_ffwd(-14); // (x: 14, y: 0)
+	pros::delay(50);
+
+
+	// score matchload into alliance goal
+	while (cascadeRotation.get_position() <= 36600) { // distance needed for second pin
+		cascade.move(127);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(50);
+	robot.move_to_point(14, -29.5);
+	pros::delay(50);
+
+	robot.odom.set_position({inches(0),inches(0),robot.imu.get_rotation()}); //reset cords
+
+	while (cascadeRotation.get_position() >= 25000) {
+		cascade.move(-50);
+		pros::delay(10);
+	}
+	brakeStop(cascade);
+	pros::delay(50);
+	pistonClaw.set_value(HIGH); // open claw
+	pros::delay(50);
+	robot.move_with_ffwd(-29); // (x: 0, y: 29)
 }
 
 void onePinAuto() {
@@ -855,6 +938,7 @@ void autonomous() {
 	// onePinAuto();
 	// pidTester();
 	leftSideAuto();
+	// rightSideAuto();
 
 	dlib::Pose2d pose = robot.odom.get_position();
 	pros::lcd::print(0,"x: %f", pose.x.in(inches));
@@ -913,9 +997,9 @@ void opcontrol() {
 			}
 		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_L1)) { // cascade down
 			if (cascadeRotation.get_position() >= 2000 && safeCascade) { // wont let cascade down if already at lowest point
-				cascade.move(-80); // not full power so it retains the speed it goes up with and doesnt destring
+				cascade.move(-127);
 			} else if (!safeCascade) {
-				cascade.move(-80);
+				cascade.move(-127);
 
 			} else {
 				brakeStop(cascade);
@@ -925,9 +1009,17 @@ void opcontrol() {
 		}
 		
 
-		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) {
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_UP)) { // turns off cascade limiter in case of emergency
 			safeCascade = !safeCascade;
 			pros::delay(250);
+		}
+		
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) { // turns left 90 degrees
+			robot.turn_with_pid(imu.get_heading() - degrees(90));
+		}
+
+		if (master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) { // turns right 90 degrees
+			robot.turn_with_pid(imu.get_heading() + degrees(90));
 		}
 
 		// auto score
